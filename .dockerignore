@@ -1,0 +1,5 @@
+copies/
+data/
+.git
+.gitignore
+.DS_Store

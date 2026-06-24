@@ -1,0 +1,4 @@
+copies/*.env
+data/
+*.bak-*
+.DS_Store

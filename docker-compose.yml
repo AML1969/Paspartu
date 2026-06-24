@@ -1,0 +1,62 @@
+# ============================================================================
+# BIF v1.0 — compose с профилями для сайдкаров.
+# Изоляция копий — через имя проекта: каждая копия поднимается как
+#   docker compose -p bif-<COPY> --profile <...> up -d
+# тогда тома (data/vault/site) автоматически префиксуются именем проекта и
+# копии физически не пересекаются. install.sh делает это за тебя.
+#
+# Лёгкие блоки (hmem/perplexity/voice/tracker/google) — рантайм-тумблеры WITH_*
+# внутри copies/<COPY>.env, отдельные контейнеры им не нужны.
+# Тяжёлые сайдкары — профили: codex, vault (Postgres), site (Caddy).
+# ============================================================================
+
+services:
+  hermes:
+    build:
+      context: .
+      args:
+        HERMES_VERSION: "0.16.0"
+    image: bif:1.0
+    restart: unless-stopped
+    env_file:
+      - copies/${COPY:?нужно COPY=имя_копии}.env
+    volumes:
+      - data:/data
+    # Telegram long-poll наружу — публиковать порты не нужно.
+
+  codex:
+    profiles: ["codex"]
+    image: bif:1.0
+    restart: unless-stopped
+    env_file:
+      - copies/${COPY}.env
+    volumes:
+      - data:/data
+    entrypoint: ["/bin/sh","-c","echo 'codex sidecar: раннер монтируется в /data/codex-jobs'; sleep infinity"]
+
+  vault:
+    profiles: ["vault"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: paspartu
+      POSTGRES_DB: paspartu
+      POSTGRES_PASSWORD: ${VAULT_PASSWORD:-changeme}
+    volumes:
+      - vault:/var/lib/postgresql/data
+
+  site:
+    profiles: ["site"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${SITE_HTTP_PORT:-8080}:80"
+      - "${SITE_HTTPS_PORT:-8443}:443"
+    volumes:
+      - data:/data
+      - site:/srv
+
+volumes:
+  data: {}
+  vault: {}
+  site: {}
