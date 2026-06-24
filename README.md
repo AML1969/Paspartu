@@ -58,6 +58,9 @@ git clone https://github.com/AML1969/Paspartu.git && cd Paspartu
 
 ## Проверка после установки
 
+> 📌 Везде ниже `<имя>` — это название, которое ты задал при установке (в примерах — `petrov`).
+> Подставляй своё имя **без угловых скобок** `<>`. Например: `./run-copy.sh petrov`.
+
 ```bash
 COPY=<имя> docker compose -p bif-<имя> ps        # STATUS должен быть Up / running
 COPY=<имя> docker compose -p bif-<имя> logs -f hermes   # логи (Ctrl+C — выход)
@@ -65,6 +68,8 @@ COPY=<имя> docker compose -p bif-<имя> logs -f hermes   # логи (Ctrl+C
 Затем напиши боту в Telegram `/start` — он должен ответить. Подробнее и решение проблем — в [INSTALL.md](INSTALL.md).
 
 ## Управление
+
+Напоминание: `<имя>` — то же название, что ты задал при установке (например `petrov`), без скобок `<>`.
 
 ```bash
 ./run-copy.sh <имя>      # перезапустить/пересобрать копию
