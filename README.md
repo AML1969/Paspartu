@@ -65,6 +65,13 @@ git clone https://github.com/AML1969/Paspartu.git && cd Paspartu
 COPY=<имя> docker compose -p bif-<имя> ps        # STATUS должен быть Up / running
 COPY=<имя> docker compose -p bif-<имя> logs -f hermes   # логи (Ctrl+C — выход)
 ```
+
+**Пример** для копии `petrov`:
+```bash
+COPY=petrov docker compose -p bif-petrov ps
+COPY=petrov docker compose -p bif-petrov logs -f hermes
+```
+
 Затем напиши боту в Telegram `/start` — он должен ответить. Подробнее и решение проблем — в [INSTALL.md](INSTALL.md).
 
 ## Управление
@@ -75,6 +82,13 @@ COPY=<имя> docker compose -p bif-<имя> logs -f hermes   # логи (Ctrl+C
 ./run-copy.sh <имя>      # перезапустить/пересобрать копию
 git pull && ./run-copy.sh <имя>   # обновиться до новой версии
 ./install.sh --check <имя>        # перепроверить ключи
+```
+
+**Пример** для копии `petrov`:
+```bash
+./run-copy.sh petrov
+git pull && ./run-copy.sh petrov
+./install.sh --check petrov
 ```
 
 Несколько копий на одной машине не пересекаются — каждая поднимается под своим именем

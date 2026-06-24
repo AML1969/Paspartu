@@ -127,6 +127,8 @@ cd Paspartu
 ```bash
 COPY=<имя> docker compose -p bif-<имя> ps
 ```
+**Пример** для копии `petrov`: `COPY=petrov docker compose -p bif-petrov ps`
+
 В колонке **STATUS** должно быть `Up`/`running` (а не `Restarting`/`Exited`).
 
 Затем **открой своего бота в Telegram и напиши `/start`** — он должен ответить. 🎉
@@ -159,13 +161,13 @@ COPY=<имя> docker compose -p bif-<имя> logs -f hermes
 | Бот «тормозит» / падает по памяти | Дай WSL2/ВМ ≥4 ГБ RAM (Шаг 1.3) |
 | `bash: ./install.sh: ...^M` | Клонировал на Windows, а не в Ubuntu — клонируй внутри `~` (Шаг 2) |
 
-Перезапустить копию вручную (когда `.env` уже создан):
+Перезапустить копию вручную (когда `.env` уже создан) — `<имя>` замени на своё (напр. `petrov`):
 ```bash
-./run-copy.sh <имя>
+./run-copy.sh <имя>        # например: ./run-copy.sh petrov
 ```
 
 Обновиться до новой версии:
 ```bash
 git pull
-./run-copy.sh <имя>
+./run-copy.sh <имя>        # например: ./run-copy.sh petrov
 ```
