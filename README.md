@@ -35,6 +35,32 @@ site-packages контейнера и они накатываются в том 
 
 Лёгкие блоки — рантайм-тумблеры в `.env`. Тяжёлые сайдкары (Codex, Postgres-vault, Caddy) — профили compose.
 
+## Требования (на сервере)
+
+- **Linux x86_64** (Ubuntu/Debian рекомендуются), `bash`, `git`.
+- **Docker Engine + плагин `docker compose` v2.** Установка: <https://docs.docker.com/engine/install/>.
+  Проверка: `docker compose version` → должно вывести `v2.x`.
+- **~2 ГБ RAM** (≈4 ГБ при включённых голосе/hmem/документах), **~10 ГБ** свободного диска
+  (образ ~3 ГБ из-за офис-стека libreoffice/pandoc + слои сборки + том `/data`).
+- **Стабильный исходящий HTTPS.** На сборке нужен доступ к PyPI и `deb.nodesource.com`; в работе — к
+  `api.deepseek.com` и `api.telegram.org` (плюс OpenAI / Perplexity / Google под включённые блоки).
+  Голос при первой расшифровке один раз качает модель `faster-whisper` (base/ru, ~150 МБ) с HuggingFace.
+
+**Если сервер — Linux в виртуалке на Windows 11 (VM или WSL2):**
+- Docker: либо **Docker Desktop** с включённой WSL2-интеграцией, либо `docker` поставить **внутри**
+  Linux-VM/WSL2-дистрибутива. Проверка та же: `docker compose version`.
+- Дай виртуалке **≥4 ГБ RAM и ≥15 ГБ диска** (образ ~3 ГБ + слои сборки + модели голоса).
+- Клонируй и собирай **внутри** Linux-ФС (домашняя папка WSL2/VM), а не в `/mnt/c/...` — так быстрее
+  и без проблем с переводами строк (репозиторий форсит LF через `.gitattributes`).
+- Telegram работает через исходящий long-poll — **проброс портов в VM не нужен.**
+
+Скачать репозиторий и войти в папку:
+
+```bash
+git clone https://github.com/AML1969/Paspartu.git && cd Paspartu
+./install.sh
+```
+
 ## Установка (рекомендуемый путь)
 
 ```bash
@@ -55,7 +81,9 @@ Telegram `getMe`, OpenAI, Perplexity), запишет `copies/<имя>.env` (chm
 ## Ручной путь (для технарей)
 
 ```bash
-cp secrets.env.example copies/petrov.env   # заполнить, chmod 600
+cp secrets.env.example copies/petrov.env
+$EDITOR copies/petrov.env                  # заполнить ключи
+chmod 600 copies/petrov.env                # права только владельцу
 COPY=petrov docker compose -p bif-petrov up -d --build
 # с сайдкарами:
 COPY=petrov docker compose -p bif-petrov --profile codex --profile site up -d --build
@@ -65,13 +93,40 @@ COPY=petrov docker compose -p bif-petrov --profile codex --profile site up -d --
 префиксуются и физически не пересекаются. Все данные копии — на томе `/data` (память, сессии, конфиг,
 скиллы, токены). Секреты **никогда** не в образе и не в git — только в `copies/*.env` на хосте.
 
+## Проверка после установки (smoke test)
+
+Первая сборка образа делается именно на этом сервере — обязательно проверь, что копия реально поднялась:
+
+1. `COPY=<имя> docker compose -p bif-<имя> ps` — колонка STATUS должна быть `Up`/`running`, не `Restarting`/`Exited`.
+2. `COPY=<имя> docker compose -p bif-<имя> logs -f hermes` — дождись старта gateway без traceback (Ctrl-C для выхода).
+3. Напиши боту в Telegram `/start` — он должен ответить.
+
+Если контейнер в `Restarting` или бот молчит — смотри логи (шаг 2): чаще всего это неверный ключ
+(`401`/`Unauthorized`) или заблокированный исходящий интернет на сервере.
+
 ## Google — отдельный пост-шаг (headless OAuth невозможен)
 
 1. В своём Google Cloud создать OAuth-клиент типа **Desktop**, включить Gmail/Calendar/Drive/Sheets/Docs/People API.
 2. **Обязательно Publish app → In production** — иначе у Testing-приложения refresh-токен умирает через **7 дней** (инцидент 2026-06-10).
-3. Положить `client_secret.json` в том копии, пройти мастер внутри контейнера
-   (`google-workspace` `setup.py --client-secret … → --auth-url → --auth-code …`). Ссылку открывать в **Chrome**.
+3. Скопировать `client_secret.json` в том копии и пройти мастер OAuth:
+   ```bash
+   COPY=<имя> docker compose -p bif-<имя> cp ./client_secret.json hermes:/data/hermes/client_secret.json
+   ```
+   Затем написать боту в Telegram «настрой Google Workspace» — агент сам запустит мастер и пришлёт ссылку.
+   Ссылку открыть в браузере **на своём компьютере** (сервер headless), а полученный код вставить обратно в чат.
 4. Токен ляжет в `/data` и переживёт рестарты.
+
+## Документы, PDF и презентации
+
+В образ запечён офис-стек (`pandoc` + `libreoffice` + `poppler` + `markitdown` + `pptxgenjs`), поэтому копия умеет:
+
+- **DOCX / PDF** — скилл `document-generation`: markdown/анализ → оформленный DOCX → PDF (pandoc → libreoffice) → загрузка на Google Диск.
+- **Презентации `.pptx`** — скилл `powerpoint`: создание/чтение/правка колод (pptxgenjs + markitdown), рендер в PDF через libreoffice.
+- **Правка PDF** — `nano-pdf` (ставится по требованию).
+
+⚠️ **Нативные Google Slides не поддерживаются.** Презентации делаются как `.pptx` и заливаются на Google
+Диск (Google открывает/конвертирует их в Slides). Google **Docs/Sheets/Gmail/Calendar/Drive** —
+поддерживаются напрямую через `google-workspace` (нужен пост-шаг OAuth выше).
 
 ## Обновление = пересборка (а не починка патчей)
 
@@ -111,9 +166,10 @@ hermes-docker/
 
 ## Известные оговорки v1.0
 
-- `docker build` не прогонялся в песочнице (там нет docker), но **каждый нетривиальный шаг
-  симулирован**: накат 8 патчей на реальный 0.16.0 + py_compile, конфиг-правки под все тумблеры,
-  вырезка hmem-блока. OS-слой идентичен прошлому рабочему 0.15.2-образу.
+- **`docker build` проверен** (arm64): образ собирается, `hermes-agent[messaging,voice,vision]==0.16.0`
+  встаёт из PyPI как wheels, все 8 патчей накатываются и py_compile проходит, модуль `telegram` и CLI
+  `hermes` на месте. На сервере друга (amd64) wheels для тех же зависимостей тоже опубликованы.
+  Перед боевым запуском всё равно прогони smoke-test (см. раздел выше).
 - STT-модель в сиде = `base`/ru (как на сервере). В памяти есть установка «whisper small» —
   расхождение оставлено как у первоисточника, решение за Андреем (см. ревизию §3.11).
 - Codex-сайдкар в compose — пока заглушка-плейсхолдер: раннер монтируется в `/data/codex-jobs`,

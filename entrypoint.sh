@@ -36,8 +36,11 @@ HERMES_RICH_MESSAGES="${HERMES_RICH_MESSAGES:-1}"
 : "${TELEGRAM_ALLOWED_USERS:?нужен TELEGRAM_ALLOWED_USERS}"
 : "${DEEPSEEK_API_KEY:?нужен DEEPSEEK_API_KEY}"
 
+# Гейт первого запуска — отдельный сентинел, который ставится ПОСЛЕДНИМ (а не
+# config.yaml, который пишется первым): если setup упадёт на середине, рестарт
+# повторит раскладку целиком, а не застрянет в полубитом состоянии.
 FIRST_RUN=0
-[ ! -f "$HERMES_HOME/config.yaml" ] && FIRST_RUN=1
+[ ! -f "$HERMES_HOME/.setup_done" ] && FIRST_RUN=1
 
 # ── Первый запуск: конфиг + скиллы ───────────────────────────────────────
 if [ "$FIRST_RUN" = 1 ]; then
@@ -103,7 +106,13 @@ PY
       cp /data/SOUL.md "$HERMES_HOME/SOUL.md"   # пользователь принёс свой
     else
       cp "$SEED/SOUL.template.md" "$HERMES_HOME/SOUL.md"
-      PXPATH="$HERMES_HOME/skills/openclaw-imports/perplexity/scripts/search.mjs"
+      # путь к perplexity-скрипту подставляем в SOUL только если блок включён;
+      # иначе скилл уже удалён (см. выше) — не зашиваем в душу мёртвый путь.
+      if on "$WITH_PERPLEXITY"; then
+        PXPATH="$HERMES_HOME/skills/openclaw-imports/perplexity/scripts/search.mjs"
+      else
+        PXPATH="(Perplexity отключён — используй встроенный web_search)"
+      fi
       if on "$WITH_CODEX"; then
         sed -e "s#{CODEX_TASK_SH}#/data/codex-jobs/codex_task.sh#g" \
             -e "s#{CODEX_ENABLED_FILE}#/data/codex/enabled#g" \
@@ -116,6 +125,7 @@ PY
       fi
     fi
   fi
+  touch "$HERMES_HOME/.setup_done"   # сентинел завершённого первого запуска (ставится последним)
 fi
 
 # ── .env копии — только релевантные ключи под выбранные блоки ──
@@ -127,7 +137,7 @@ GW_TOKEN="${HERMES_GATEWAY_TOKEN:-$(openssl rand -hex 24)}"
   on "$WITH_PERPLEXITY" && echo "PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}"
   echo "TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
   echo "TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS}"
-  echo "TELEGRAM_HOME_CHANNEL=${TELEGRAM_HOME_CHANNEL:-${TELEGRAM_ALLOWED_USERS}}"
+  echo "TELEGRAM_HOME_CHANNEL=${TELEGRAM_HOME_CHANNEL:-${TELEGRAM_ALLOWED_USERS%%,*}}"
   echo "HERMES_GATEWAY_TOKEN=${GW_TOKEN}"
   echo "HERMES_RICH_MESSAGES=${HERMES_RICH_MESSAGES}"
   echo "MESSAGING_CWD=${WORKSPACE}"

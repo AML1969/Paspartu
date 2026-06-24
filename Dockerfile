@@ -22,15 +22,31 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TASKS_DIR=/data/workspace/tasks
 
 # Системные зависимости + Node 22 (perplexity-поиск/скиллы) + ripgrep (hmem) + ffmpeg (голос)
+# + офис-стек для документов: pandoc (HTML→DOCX), libreoffice writer/impress/calc
+#   (DOCX/PPTX→PDF, headless), poppler-utils (рендер слайдов), шрифты с кириллицей.
+#   pptxgenjs (создание .pptx с нуля) ставится глобально через npm.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates git ripgrep ffmpeg openssl tini build-essential \
+        pandoc libreoffice-writer libreoffice-impress libreoffice-calc poppler-utils \
+        fonts-liberation fonts-dejavu \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g pptxgenjs && npm cache clean --force \
     && apt-get purge -y build-essential && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Ядро — ровно та версия, что на сервере
-RUN pip install "hermes-agent==${HERMES_VERSION}"
+# Ядро — ровно та версия, что на сервере.
+# ВАЖНО: bare `hermes-agent` НЕ тянет python-telegram-bot (он только в extra
+# `messaging`) — без него бот-копия стартует, но никогда не подключится к Telegram.
+# messaging → Telegram (обязательно); voice → faster-whisper/STT (WITH_VOICE=1 по
+# умолчанию в standard); vision → Pillow (картинки); google → Gmail/Calendar/Drive/
+# Docs/Sheets (скилл google-workspace; WITH_GOOGLE=1 в пресете standard).
+# ddgs — бэкенд встроенного web_search (toolset `web` в config по умолчанию).
+# markitdown[pptx] — чтение/извлечение текста из .pptx/.docx для скиллов документов.
+# (edge-tts намеренно не ставим — голосовые ОТВЕТЫ/TTS клиентским копиям не нужны;
+#  голосовой ВВОД/STT работает локально через faster-whisper без доп. пакетов.)
+RUN pip install "hermes-agent[messaging,voice,vision,google]==${HERMES_VERSION}" \
+        "ddgs==9.14.4" "markitdown[pptx]==0.1.6"
 
 # --- Запекание патчей (отдельный слой для кэша) ---------------------------
 # Патчи verbatim с сервера хардкодят pipx-путь; ретаргетим на реальный
@@ -48,13 +64,19 @@ RUN set -eu; \
     python -c "import py_compile,glob,os; \
 sp=os.environ.get('SP','$SP'); \
 [py_compile.compile(f,doraise=True) for f in [sp+'/gateway/platforms/telegram.py', sp+'/gateway/stream_consumer.py']]; \
-print('[build] patched files compile OK')"
+print('[build] patched files compile OK')"; \
+    find "$SP/gateway" -name '*.bak-*' -delete
 
 # --- Семя образа (конфиг + скиллы + блоки) --------------------------------
 COPY seed/ /opt/hermes-seed/
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Чтобы скилл powerpoint мог `require("pptxgenjs")` (и глобальные react/sharp при
+# доустановке) — node должен искать модули в глобальной папке. Ставим в конце, чтобы
+# не инвалидировать дорогие apt/pip-слои.
+ENV NODE_PATH=/usr/lib/node_modules
 
 # Все данные копии (память, сессии, конфиг, скиллы, токены) — на томе /data
 VOLUME ["/data"]

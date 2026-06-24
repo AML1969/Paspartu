@@ -27,6 +27,11 @@ ask(){ local p="$1" d="${2:-}"; local v; read -rp "  $p${d:+ [$d]}: " v; echo "$
 asks(){ local p="$1"; local v; read -rsp "  $p: " v; echo >&2; echo "$v"; }
 yn(){ local p="$1" d="${2:-Y}"; local v; read -rp "  $p [$([ "$d" = Y ] && echo 'Y/n' || echo 'y/N')]: " v; v="${v:-$d}"; case "$v" in y|Y|yes|да) echo 1;; *) echo 0;; esac; }
 
+# ── имя копии: нормализация + проверка под имя файла и docker-проект bif-<name> ──
+# Возвращает нормализованное имя (lowercase); код возврата 1 + пустой вывод, если
+# имя пустое или содержит что-то кроме [a-z0-9_-] (пробелы, заглавные, кириллица…).
+norm_name(){ local n; n="$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z')"; case "$n" in ''|*[!a-z0-9_-]*) return 1;; esac; printf '%s' "$n"; }
+
 # ── живая валидация ключей ────────────────────────────────────────────────
 val_deepseek(){ curl -fsS -m 12 https://api.deepseek.com/v1/models -H "Authorization: Bearer $1" -o /dev/null && c_ok "DeepSeek" || { c_no "DeepSeek — ключ отклонён"; return 1; }; }
 val_openai(){   curl -fsS -m 12 https://api.openai.com/v1/models   -H "Authorization: Bearer $1" -o /dev/null && c_ok "OpenAI" || c_no "OpenAI — ключ отклонён"; }
@@ -46,13 +51,20 @@ apply_preset(){ # $1=preset → выставляет P_* по умолчанию
 # ── запись copies/<name>.env ──────────────────────────────────────────────
 write_env(){ # uses NAME + DS_KEY TG_TOKEN TG_ID + OA_KEY PX_KEY OR_KEY + W_*
   local ENVF="copies/$NAME.env"
+  if [ -f "$ENVF" ]; then
+    cp -p "$ENVF" "$ENVF.bak-$(date +%s)" && c_warn "существующий $ENVF сохранён в бэкап"
+    # интерактив: спросить подтверждение; в --headless (нет TTY) перезаписываем молча (бэкап уже есть)
+    if [ -t 0 ] && [ "$(yn "Копия «$NAME» уже существует — перезаписать .env?" N)" != 1 ]; then
+      c_no "отмена — оставляю прежний $ENVF"; exit 1
+    fi
+  fi
   umask 177
   cat > "$ENVF" <<EOF
 # BIF copy: $NAME  (сгенерировано install.sh $(date -u +%FT%TZ))
 DEEPSEEK_API_KEY=$DS_KEY
 TELEGRAM_BOT_TOKEN=$TG_TOKEN
 TELEGRAM_ALLOWED_USERS=$TG_ID
-TELEGRAM_HOME_CHANNEL=${TG_HOME:-$TG_ID}
+TELEGRAM_HOME_CHANNEL=${TG_HOME:-${TG_ID%%,*}}
 ${OA_KEY:+OPENAI_API_KEY=$OA_KEY}
 ${PX_KEY:+PERPLEXITY_API_KEY=$PX_KEY}
 ${OR_KEY:+OPENROUTER_API_KEY=$OR_KEY}
@@ -84,7 +96,7 @@ bring_up(){
   hdr "Подъём контейнера"
   echo "  COPY=$NAME docker compose -p bif-$NAME ${PROFILES[*]:-} up -d --build"
   if command -v docker >/dev/null 2>&1; then
-    COPY="$NAME" docker compose -p "bif-$NAME" "${PROFILES[@]}" up -d --build
+    COPY="$NAME" docker compose -p "bif-$NAME" ${PROFILES[@]+"${PROFILES[@]}"} up -d --build
     c_ok "копия «$NAME» поднята"
   else
     c_no "docker не найден — запусти вручную команду выше"
@@ -109,7 +121,7 @@ summary(){
     echo "  3) client_secret.json в том копии, пройти мастер внутри контейнера (README → Google). Ссылку — в Chrome."
   fi
   echo
-  echo "  Логи:   docker compose -p bif-$NAME logs -f hermes"
+  echo "  Логи:   COPY=$NAME docker compose -p bif-$NAME logs -f hermes"
   echo "  Проверка ключей позже:  ./install.sh --check $NAME"
 }
 
@@ -130,7 +142,12 @@ resolve_flags(){ # uses PRESET + env WITH_* overrides + OA_KEY/PX_KEY/OR_KEY
 if [ "${1:-}" = "--check" ]; then
   NAME="${2:?укажи имя копии: ./install.sh --check имя}"; ENVF="copies/$NAME.env"
   [ -f "$ENVF" ] || { c_no "нет $ENVF"; exit 1; }
-  set -a; . "$ENVF"; set +a
+  # парсим .env буквально (без `. "$ENVF"`, чтобы значения ключей не исполнялись как shell)
+  while IFS='=' read -r k v; do
+    case "$k" in ''|\#*) continue;; esac
+    [[ "$k" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    export "$k=$v"
+  done < "$ENVF"
   hdr "Проверка ключей копии «$NAME»"
   val_deepseek "${DEEPSEEK_API_KEY:-}" || true
   [ -n "${OPENAI_API_KEY:-}" ] && val_openai "$OPENAI_API_KEY"
@@ -142,6 +159,7 @@ fi
 # ════════════════════════ MODE: --headless ════════════════════════
 if [ "${1:-}" = "--headless" ]; then
   NAME="${NAME:?headless: нужен NAME}"
+  NAME="$(norm_name "$NAME")" || { c_no "headless: NAME только латиница a-z, цифры, _ и - (lowercase, без пробелов/кириллицы)"; exit 1; }
   TG_TOKEN="${TELEGRAM_BOT_TOKEN:?headless: нужен TELEGRAM_BOT_TOKEN}"
   TG_ID="${TELEGRAM_ALLOWED_USERS:?headless: нужен TELEGRAM_ALLOWED_USERS}"
   DS_KEY="${DEEPSEEK_API_KEY:?headless: нужен DEEPSEEK_API_KEY}"
@@ -165,9 +183,10 @@ if [ "${1:-}" = "--headless" ]; then
 fi
 
 # ════════════════════════ MODE: интерактивный мастер ════════════════════════
+[ -t 0 ] || { c_no 'нет интерактивного ввода (нет TTY) — используй ./install.sh --headless (см. шапку скрипта)'; exit 1; }
 hdr "════ BIF v1.0 — установка копии ════"
 NAME="$(ask 'Имя копии (латиницей, напр. petrov)')"
-[ -n "$NAME" ] || { c_no "имя обязательно"; exit 1; }
+NAME="$(norm_name "$NAME")" || { c_no "имя копии: только латиница a-z, цифры, _ и - (без пробелов/заглавных/кириллицы)"; exit 1; }
 
 hdr "Шаг 1. Telegram-бот (обязательно)"
 echo "  Открой @BotFather → /newbot → пришли токен."
@@ -217,11 +236,17 @@ if [ "$(yn 'Добавить OpenRouter (Nemotron/запасной LLM)?' N)" = 
 fi
 
 resolve_flags
-hdr "Шаг 4. Проверка ключей"
-val_deepseek "$DS_KEY" || true
-val_tg "$TG_TOKEN" || true
-[ -n "$OA_KEY" ] && val_openai "$OA_KEY"
-[ -n "$PX_KEY" ] && val_pplx "$PX_KEY"
+if [ "${BIF_VALIDATE:-1}" = 1 ]; then
+  hdr "Шаг 4. Проверка ключей"
+  echo "  (исходящие HTTPS к api.deepseek.com / api.telegram.org / openai / perplexity;"
+  echo "   ❌ может значить заблокированный egress, а не плохой ключ. Пропустить: BIF_VALIDATE=0 ./install.sh)"
+  val_deepseek "$DS_KEY" || true
+  val_tg "$TG_TOKEN" || true
+  [ -n "$OA_KEY" ] && val_openai "$OA_KEY"
+  [ -n "$PX_KEY" ] && val_pplx "$PX_KEY"
+else
+  c_warn "BIF_VALIDATE=0 — пропускаю живую проверку ключей"
+fi
 
 write_env
 bring_up

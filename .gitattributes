@@ -1,0 +1,8 @@
+# Все текстовые файлы — всегда LF в рабочем дереве. Иначе клон на Windows с
+# core.autocrlf=true даст CRLF, и bash-скрипты сломаются в Linux/контейнере:
+# "/usr/bin/env bash^M: bad interpreter". Критично для запуска в Linux-VM/WSL2 на Windows.
+* text=auto eol=lf
+
+# Сид-архивы — бинарные: git не нормализует и не трогает переводы строк внутри.
+*.tar.gz binary
+*.gz binary

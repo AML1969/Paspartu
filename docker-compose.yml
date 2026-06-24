@@ -26,6 +26,10 @@ services:
 
   codex:
     profiles: ["codex"]
+    build:
+      context: .
+      args:
+        HERMES_VERSION: "0.16.0"
     image: bif:1.0
     restart: unless-stopped
     env_file:
@@ -35,13 +39,16 @@ services:
     entrypoint: ["/bin/sh","-c","echo 'codex sidecar: раннер монтируется в /data/codex-jobs'; sleep infinity"]
 
   vault:
+    # ВНИМАНИЕ: профиль vault в v1.0 НЕ подключён к install.sh/run-copy.sh — задел на
+    # будущее. Пароль без небезопасного дефолта: если включить vault без VAULT_PASSWORD,
+    # Postgres упадёт с явной ошибкой (пустой пароль), а не поднимется со слабым «changeme».
     profiles: ["vault"]
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: paspartu
       POSTGRES_DB: paspartu
-      POSTGRES_PASSWORD: ${VAULT_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${VAULT_PASSWORD:-}
     volumes:
       - vault:/var/lib/postgresql/data
 
