@@ -117,6 +117,8 @@ cd Paspartu
 ```bash
 COPY=<имя> docker compose -p bif-<имя> ps
 ```
+**Пример** для копии `petrov`: `COPY=petrov docker compose -p bif-petrov ps`
+
 В колонке **STATUS** должно быть `Up`/`running` (а не `Restarting`/`Exited`).
 
 Затем **открой своего бота в Telegram и напиши `/start`** — он должен ответить. 🎉
@@ -149,13 +151,13 @@ COPY=<имя> docker compose -p bif-<имя> logs -f hermes
 | Мало места / «no space left» | Освободи диск (нужно ~15 ГБ): `docker system df`, при необходимости `docker system prune` |
 | Падает по памяти при работе | Нужно ≥4 ГБ RAM (особенно при голосе/документах) |
 
-Перезапустить копию вручную (когда `.env` уже создан):
+Перезапустить копию вручную (когда `.env` уже создан) — `<имя>` замени на своё (напр. `petrov`):
 ```bash
-./run-copy.sh <имя>
+./run-copy.sh <имя>        # например: ./run-copy.sh petrov
 ```
 
 Обновиться до новой версии:
 ```bash
 git pull
-./run-copy.sh <имя>
+./run-copy.sh <имя>        # например: ./run-copy.sh petrov
 ```
