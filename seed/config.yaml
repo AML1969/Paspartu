@@ -289,8 +289,8 @@ human_delay:
 context:
   engine: compressor
 memory:
-  memory_enabled: true
-  user_profile_enabled: true
+  memory_enabled: false
+  user_profile_enabled: false
   memory_char_limit: 2200
   user_char_limit: 1375
   provider: ''
@@ -475,7 +475,6 @@ platform_toolsets:
   - file
   - image_gen
   - kanban
-  - memory
   - messaging
   - session_search
   - skills
