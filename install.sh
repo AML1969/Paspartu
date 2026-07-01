@@ -24,7 +24,28 @@ c_no(){ printf '  \033[31m❌ %s\033[0m\n' "$*"; }
 c_warn(){ printf '  \033[33m⚠️  %s\033[0m\n' "$*"; }
 hdr(){ printf '\n\033[1m%s\033[0m\n' "$*"; }
 ask(){ local p="$1" d="${2:-}"; local v; read -rp "  $p${d:+ [$d]}: " v; echo "${v:-$d}"; }
-asks(){ local p="$1"; local v; read -rsp "  $p: " v; echo >&2; echo "$v"; }
+# askk VAR "prompt" "validator_fn" required(1/0)
+#   Видимый ввод ключа (взамен старого слепого read -rsp): чистит случайные пробелы
+#   от вставки, и при BIF_VALIDATE=1 сразу проверяет ключ, предлагая повтор при ошибке.
+#   Результат кладёт в переменную VAR (без stdout-capture). required=0 → Enter = пропустить.
+askk(){
+  local __var="$1" prompt="$2" vfn="${3:-}" required="${4:-1}" val choice
+  while :; do
+    read -rp "  $prompt: " val || { c_no "ввод прерван"; exit 1; }
+    val="${val//[$' \t\r\n']/}"
+    if [ -z "$val" ]; then
+      [ "$required" = 0 ] && { printf -v "$__var" '%s' ''; return 0; }
+      c_no "пусто — вставь значение ещё раз"; continue
+    fi
+    if [ "${BIF_VALIDATE:-1}" = 1 ] && [ -n "$vfn" ]; then
+      if "$vfn" "$val"; then printf -v "$__var" '%s' "$val"; return 0; fi
+      c_warn "не прошло проверку. Enter — ввести заново; s — оставить как есть"
+      read -rp "  [Enter=заново / s=оставить]: " choice || choice=""
+      case "$choice" in s|S) printf -v "$__var" '%s' "$val"; return 0;; *) continue;; esac
+    fi
+    printf -v "$__var" '%s' "$val"; return 0
+  done
+}
 yn(){ local p="$1" d="${2:-Y}"; local v; read -rp "  $p [$([ "$d" = Y ] && echo 'Y/n' || echo 'y/N')]: " v; v="${v:-$d}"; case "$v" in y|Y|yes|да) echo 1;; *) echo 0;; esac; }
 
 # ── имя копии: нормализация + проверка под имя файла и docker-проект bif-<name> ──
@@ -34,8 +55,8 @@ norm_name(){ local n; n="$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z')"; case "$n" in
 
 # ── живая валидация ключей ────────────────────────────────────────────────
 val_deepseek(){ curl -fsS -m 12 https://api.deepseek.com/v1/models -H "Authorization: Bearer $1" -o /dev/null && c_ok "DeepSeek" || { c_no "DeepSeek — ключ отклонён"; return 1; }; }
-val_openai(){   curl -fsS -m 12 https://api.openai.com/v1/models   -H "Authorization: Bearer $1" -o /dev/null && c_ok "OpenAI" || c_no "OpenAI — ключ отклонён"; }
-val_pplx(){     curl -fsS -m 12 https://api.perplexity.ai/chat/completions -H "Authorization: Bearer $1" -H 'Content-Type: application/json' -d '{"model":"sonar","messages":[{"role":"user","content":"ping"}],"max_tokens":1}' -o /dev/null && c_ok "Perplexity" || c_no "Perplexity — ключ отклонён (проверь баланс)"; }
+val_openai(){   curl -fsS -m 12 https://api.openai.com/v1/models   -H "Authorization: Bearer $1" -o /dev/null && { c_ok "OpenAI"; return 0; } || { c_no "OpenAI — ключ отклонён"; return 1; }; }
+val_pplx(){     curl -fsS -m 12 https://api.perplexity.ai/chat/completions -H "Authorization: Bearer $1" -H 'Content-Type: application/json' -d '{"model":"sonar","messages":[{"role":"user","content":"ping"}],"max_tokens":1}' -o /dev/null && { c_ok "Perplexity"; return 0; } || { c_no "Perplexity — ключ отклонён (проверь баланс)"; return 1; }; }
 val_tg(){ local r; r=$(curl -fsS -m 12 "https://api.telegram.org/bot$1/getMe" 2>/dev/null||true); case "$r" in *'"ok":true'*) c_ok "Telegram $(echo "$r"|grep -o '"username":"[^"]*"'|cut -d'"' -f4|sed 's/^/@/')"; return 0;; *) c_no "Telegram getMe — токен отклонён"; return 1;; esac; }
 
 # ── пресет → тумблеры (явные WITH_* потом перекрывают) ────────────────────
@@ -150,8 +171,8 @@ if [ "${1:-}" = "--check" ]; then
   done < "$ENVF"
   hdr "Проверка ключей копии «$NAME»"
   val_deepseek "${DEEPSEEK_API_KEY:-}" || true
-  [ -n "${OPENAI_API_KEY:-}" ] && val_openai "$OPENAI_API_KEY"
-  [ -n "${PERPLEXITY_API_KEY:-}" ] && val_pplx "$PERPLEXITY_API_KEY"
+  [ -n "${OPENAI_API_KEY:-}" ] && { val_openai "$OPENAI_API_KEY" || true; }
+  [ -n "${PERPLEXITY_API_KEY:-}" ] && { val_pplx "$PERPLEXITY_API_KEY" || true; }
   val_tg "${TELEGRAM_BOT_TOKEN:-}" || true
   exit 0
 fi
@@ -172,8 +193,8 @@ if [ "${1:-}" = "--headless" ]; then
     rc=0
     val_deepseek "$DS_KEY" || rc=1
     val_tg "$TG_TOKEN" || rc=1
-    [ -n "$OA_KEY" ] && val_openai "$OA_KEY"
-    [ -n "$PX_KEY" ] && val_pplx "$PX_KEY"
+    [ -n "$OA_KEY" ] && { val_openai "$OA_KEY" || true; }
+    [ -n "$PX_KEY" ] && { val_pplx "$PX_KEY" || true; }
     [ "$rc" = 1 ] && c_warn "обязательный ключ (DeepSeek/Telegram) не прошёл — копия не поднимется корректно"
   fi
   write_env
@@ -185,19 +206,22 @@ fi
 # ════════════════════════ MODE: интерактивный мастер ════════════════════════
 [ -t 0 ] || { c_no 'нет интерактивного ввода (нет TTY) — используй ./install.sh --headless (см. шапку скрипта)'; exit 1; }
 hdr "════ BIF v1.0 — установка копии ════"
+echo "  Ключи вводятся видимо и проверяются сразу; при ошибке — повтор."
+echo "  ❌ иногда значит заблокированный исходящий HTTPS, а не плохой ключ —"
+echo "  тогда можно оставить ключ (s) или пропустить проверки: BIF_VALIDATE=0 ./install.sh"
 NAME="$(ask 'Имя копии (латиницей, напр. petrov)')"
 NAME="$(norm_name "$NAME")" || { c_no "имя копии: только латиница a-z, цифры, _ и - (без пробелов/заглавных/кириллицы)"; exit 1; }
 
 hdr "Шаг 1. Telegram-бот (обязательно)"
 echo "  Открой @BotFather → /newbot → пришли токен."
-TG_TOKEN="$(asks 'Telegram bot token')"
+askk TG_TOKEN 'Telegram bot token' val_tg 1
 echo "  Свой Telegram ID узнать: @userinfobot"
 TG_ID="$(ask 'Твой Telegram ID (whitelist)')"
 TG_HOME="$TG_ID"
 
 hdr "Шаг 2. Мозг (обязательно)"
 echo "  Ключ: platform.deepseek.com"
-DS_KEY="$(asks 'DeepSeek API key')"
+askk DS_KEY 'DeepSeek API key' val_deepseek 1
 
 hdr "Шаг 3. Профиль установки"
 echo "  1) minimal  — мозг + Telegram + Perplexity + файловая память"
@@ -229,24 +253,14 @@ esac
 # ключи под блоки (спросим до resolve, чтобы resolve мог выключить блок без ключа)
 apply_preset "${PRESET}"
 NEED_OPENAI="${WITH_OPENAI:-$P_OPENAI}"; NEED_PPLX="${WITH_PERPLEXITY:-$P_PPLX}"
-[ "$NEED_OPENAI" = 1 ] && { hdr "Ключ OpenAI (platform.openai.com)"; OA_KEY="$(asks 'OPENAI_API_KEY')"; }
-[ "$NEED_PPLX" = 1 ]   && { hdr "Ключ Perplexity (perplexity.ai/settings/api)"; PX_KEY="$(asks 'PERPLEXITY_API_KEY')"; }
+[ "$NEED_OPENAI" = 1 ] && { hdr "Ключ OpenAI (platform.openai.com)"; askk OA_KEY 'OPENAI_API_KEY' val_openai 0; }
+[ "$NEED_PPLX" = 1 ]   && { hdr "Ключ Perplexity (perplexity.ai/settings/api)"; askk PX_KEY 'PERPLEXITY_API_KEY' val_pplx 0; }
 if [ "$(yn 'Добавить OpenRouter (Nemotron/запасной LLM)?' N)" = 1 ]; then
-  hdr "Ключ OpenRouter (openrouter.ai/keys)"; OR_KEY="$(asks 'OPENROUTER_API_KEY')"
+  hdr "Ключ OpenRouter (openrouter.ai/keys)"; askk OR_KEY 'OPENROUTER_API_KEY' '' 0
 fi
 
 resolve_flags
-if [ "${BIF_VALIDATE:-1}" = 1 ]; then
-  hdr "Шаг 4. Проверка ключей"
-  echo "  (исходящие HTTPS к api.deepseek.com / api.telegram.org / openai / perplexity;"
-  echo "   ❌ может значить заблокированный egress, а не плохой ключ. Пропустить: BIF_VALIDATE=0 ./install.sh)"
-  val_deepseek "$DS_KEY" || true
-  val_tg "$TG_TOKEN" || true
-  [ -n "$OA_KEY" ] && val_openai "$OA_KEY"
-  [ -n "$PX_KEY" ] && val_pplx "$PX_KEY"
-else
-  c_warn "BIF_VALIDATE=0 — пропускаю живую проверку ключей"
-fi
+# Ключи уже проверены вживую на шагах ввода (askk с валидатором). Отдельный шаг проверки не нужен.
 
 write_env
 bring_up
