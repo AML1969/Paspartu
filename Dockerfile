@@ -56,14 +56,14 @@ RUN set -eu; \
     SP="$(python -c 'import gateway,os;print(os.path.dirname(os.path.dirname(os.path.abspath(gateway.__file__))))')"; \
     echo "[build] site-packages = $SP"; \
     PIPX='/root/.local/share/pipx/venvs/hermes-agent/lib/python3.12/site-packages'; \
-    for p in localize_approval_ru stream_empty_sentinel rich_messages rich_v2_delta rich_v3 rich_v4 rich_v5 rich_v6; do \
+    for p in localize_approval_ru stream_empty_sentinel rich_messages rich_v2_delta rich_v3 rich_v4 rich_v5 rich_v6 rich_v6b_draft_strip rich_v7_carousel rich_v8_carousel_rich; do \
         sed "s#${PIPX}#${SP}#g" "/opt/hermes-seed/patches/$p.py" > "/tmp/$p.py"; \
         echo "[build] applying $p"; \
         python "/tmp/$p.py"; \
     done; \
     python -c "import py_compile,glob,os; \
 sp=os.environ.get('SP','$SP'); \
-[py_compile.compile(f,doraise=True) for f in [sp+'/gateway/platforms/telegram.py', sp+'/gateway/stream_consumer.py']]; \
+[py_compile.compile(f,doraise=True) for f in [sp+'/gateway/platforms/telegram.py', sp+'/gateway/platforms/base.py', sp+'/gateway/stream_consumer.py']]; \
 print('[build] patched files compile OK')"; \
     find "$SP/gateway" -name '*.bak-*' -delete
 
