@@ -22,6 +22,15 @@ services:
       - copies/${COPY:?нужно COPY=имя_копии}.env
     volumes:
       - data:/data
+    # Ротация логов: дефолтный json-file безлимитный — болтливый бот забивает диск.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Потолок RAM: LibreOffice-конвертация + whisper дают пики; без лимита на малом
+    # дроплете/домашнем ПК рискуем OOM всего хоста, с лимитом — только контейнера.
+    mem_limit: 3g
     # Telegram long-poll наружу — публиковать порты не нужно.
 
   codex:
