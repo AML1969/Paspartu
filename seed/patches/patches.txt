@@ -1,0 +1,21 @@
+# ============================================================================
+# Манифест цепочки патчей Hermes 0.16.0 — ЕДИНЫЙ источник порядка.
+# Читают: Dockerfile (build-time, sed-ретаргет pipx→site-packages)
+#         и update_hermes.sh (хост, pipx-путь как есть).
+# Порядок ВАЖЕН (зависимости якорей): rich_messages → v2,v5; v3 → v4,v6b;
+# v4 → v6; {v4,v5,v6} → v8. localize/sentinel/v7 — независимы.
+# Новый патч — добавить строку сюда + файл в эту папку. Больше нигде.
+# Неприменяемые (в archive/ на сервере, НЕ в цепочке): cancel_words_ru,
+# cancel_barge_in (отменены 2026-06-05), tracker_rich (патчит скилл, не пакет).
+# ============================================================================
+localize_approval_ru.py
+stream_empty_sentinel.py
+rich_messages.py
+rich_v2_delta.py
+rich_v3.py
+rich_v4.py
+rich_v5.py
+rich_v6.py
+rich_v6b_draft_strip.py
+rich_v7_carousel.py
+rich_v8_carousel_rich.py
