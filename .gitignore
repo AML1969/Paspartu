@@ -2,3 +2,7 @@ copies/*.env
 data/
 *.bak-*
 .DS_Store
+__pycache__/
+*.pyc
+build.log
+*.env

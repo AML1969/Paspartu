@@ -53,6 +53,11 @@ yn(){ local p="$1" d="${2:-Y}"; local v; read -rp "  $p [$([ "$d" = Y ] && echo 
 # имя пустое или содержит что-то кроме [a-z0-9_-] (пробелы, заглавные, кириллица…).
 norm_name(){ local n; n="$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z')"; case "$n" in ''|*[!a-z0-9_-]*) return 1;; esac; printf '%s' "$n"; }
 
+# ── Telegram ID: только цифры (несколько ID — через запятую) ──────────────
+# Единственный обязательный ввод без живой валидации через API — опечатка иначе
+# молча уезжает в .env и всплывает только как «бот не отвечает».
+val_tgid(){ case "${1:-}" in ''|*[!0-9,]*|,*|*,|*,,*) return 1;; *) return 0;; esac; }
+
 # ── живая валидация ключей ────────────────────────────────────────────────
 val_deepseek(){ curl -fsS -m 12 https://api.deepseek.com/v1/models -H "Authorization: Bearer $1" -o /dev/null && c_ok "DeepSeek" || { c_no "DeepSeek — ключ отклонён"; return 1; }; }
 val_openai(){   curl -fsS -m 12 https://api.openai.com/v1/models   -H "Authorization: Bearer $1" -o /dev/null && { c_ok "OpenAI"; return 0; } || { c_no "OpenAI — ключ отклонён"; return 1; }; }
@@ -183,6 +188,7 @@ if [ "${1:-}" = "--headless" ]; then
   NAME="$(norm_name "$NAME")" || { c_no "headless: NAME только латиница a-z, цифры, _ и - (lowercase, без пробелов/кириллицы)"; exit 1; }
   TG_TOKEN="${TELEGRAM_BOT_TOKEN:?headless: нужен TELEGRAM_BOT_TOKEN}"
   TG_ID="${TELEGRAM_ALLOWED_USERS:?headless: нужен TELEGRAM_ALLOWED_USERS}"
+  val_tgid "$TG_ID" || c_warn "TELEGRAM_ALLOWED_USERS выглядит подозрительно (ожидаю цифры/запятые): '$TG_ID'"
   DS_KEY="${DEEPSEEK_API_KEY:?headless: нужен DEEPSEEK_API_KEY}"
   TG_HOME="${TELEGRAM_HOME_CHANNEL:-$TG_ID}"
   OA_KEY="${OPENAI_API_KEY:-}"; PX_KEY="${PERPLEXITY_API_KEY:-}"; OR_KEY="${OPENROUTER_API_KEY:-}"
@@ -217,6 +223,10 @@ echo "  Открой @BotFather → /newbot → пришли токен."
 askk TG_TOKEN 'Telegram bot token' val_tg 1
 echo "  Свой Telegram ID узнать: @userinfobot"
 TG_ID="$(ask 'Твой Telegram ID (whitelist)')"
+until val_tgid "$TG_ID"; do
+  c_no "ID — это число (несколько ID — через запятую без пробелов), напр. 123456789"
+  TG_ID="$(ask 'Твой Telegram ID (whitelist)')"
+done
 TG_HOME="$TG_ID"
 
 hdr "Шаг 2. Мозг (обязательно)"
@@ -247,9 +257,7 @@ case "$PROF" in
     WITH_SITE=$(yn "Автодеплой сайта (Caddy)?" N) ;;
   *)          PRESET=standard ;;
 esac
-# для custom apply_preset не нужен — флаги уже в WITH_*; для остальных пресет задаёт дефолты
-[ "$PROF" = 4 ] || PRESET="$PRESET"
-
+# для custom пресет не важен — флаги уже заданы в WITH_*; для остальных пресет задаёт дефолты
 # ключи под блоки (спросим до resolve, чтобы resolve мог выключить блок без ключа)
 apply_preset "${PRESET}"
 NEED_OPENAI="${WITH_OPENAI:-$P_OPENAI}"; NEED_PPLX="${WITH_PERPLEXITY:-$P_PPLX}"
