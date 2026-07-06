@@ -58,7 +58,7 @@ for name, a in (("H", ANCHOR_H), ("SEND", A_SEND), ("DRAFT", A_DRAFT)):
     if a not in src:
         print("anchor %s not found - aborting" % name); sys.exit(1)
 
-bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 shutil.copy2(F, bak)
 print("backup:", bak)
 out = src.replace(ANCHOR_H, ANCHOR_H + HELPER, 1).replace(A_SEND, N_SEND, 1).replace(A_DRAFT, N_DRAFT, 1)

@@ -21,7 +21,7 @@ GUARD = ("        if text.strip() == \"(empty)\":  # " + MARKER + "\n"
          "            return \"\"\n")
 if ANCHOR not in src:
     print("ANCHOR not found — aborting, no changes"); sys.exit(1)
-bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 shutil.copy2(F, bak)
 print("backup:", bak)
 open(F, "w").write(src.replace(ANCHOR, GUARD + ANCHOR, 1))

@@ -99,7 +99,7 @@ HOOK = GUARD + """
 if GUARD not in src:
     print("GUARD anchor not found - aborting"); sys.exit(1)
 
-bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 shutil.copy2(F, bak)
 print("backup:", bak)
 out = src.replace(ANCHOR_DEF, HELPERS + ANCHOR_DEF, 1).replace(GUARD, HOOK, 1)

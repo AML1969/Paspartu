@@ -100,7 +100,7 @@ def main() -> int:
         if n != 1:
             print(f"telegram.py: якорь #{i} найден {n} раз (ожидалось 1) — АБОРТ, изменений нет")
             return 1
-    bak = TG + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+    bak = TG + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
     shutil.copy2(TG, bak)
     patched = src
     for anchor, new in PAIRS:
