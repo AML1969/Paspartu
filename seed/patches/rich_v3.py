@@ -15,7 +15,7 @@ SP = "/root/.local/share/pipx/venvs/hermes-agent/lib/python3.12/site-packages"
 TG = SP + "/gateway/platforms/telegram.py"
 SC = SP + "/gateway/stream_consumer.py"
 MARKER = "RU v3"
-ts = time.strftime("%Y%m%d-%H%M%S")
+ts = time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 
 tg = open(TG).read()
 sc = open(SC).read()

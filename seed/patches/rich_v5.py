@@ -22,7 +22,7 @@ NEW = """        # RU v5: always rich — drafts render rich unconditionally, so
         return True"""
 if OLD not in src:
     print("anchor not found - aborting"); sys.exit(1)
-bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 shutil.copy2(F, bak)
 print("backup:", bak)
 open(F, "w").write(src.replace(OLD, NEW, 1))

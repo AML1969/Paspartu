@@ -1,5 +1,7 @@
 import io,sys,py_compile,shutil,time,glob
-F=glob.glob("/root/.local/share/pipx/venvs/hermes-agent/lib/python3.12/site-packages/gateway/platforms/telegram.py")[0]
+_hits=glob.glob("/root/.local/share/pipx/venvs/hermes-agent/lib/python3.12/site-packages/gateway/platforms/telegram.py")
+if not _hits: print("FAIL: telegram.py не найден по ожидаемому пути — структура пакета изменилась (0.18+?) или другой путь"); sys.exit(2)
+F=_hits[0]
 s=io.open(F,encoding="utf-8").read()
 if "Требуется подтверждение команды" in s:
     print("telegram.py already localized — skip"); sys.exit(0)
@@ -17,7 +19,7 @@ reps=[
 miss=[o for o,_ in reps if o not in s]
 if miss:
     print("MISSING (abort):"); [print("  ",repr(m)) for m in miss]; sys.exit(2)
-bak=F+".bak-"+time.strftime("%Y%m%d-%H%M%S"); shutil.copy2(F,bak); print("backup:",bak)
+bak=F+".bak-"+time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9); shutil.copy2(F,bak); print("backup:",bak)
 for o,n in reps: s=s.replace(o,n)
 io.open(F,"w",encoding="utf-8").write(s)
 try:

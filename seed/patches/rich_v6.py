@@ -52,7 +52,7 @@ NEW = """        # RU v6: finalize edits go rich when enabled — one rich messa
         # without round-tripping a doomed edit."""
 if ANCHOR not in src:
     print("anchor not found - aborting"); sys.exit(1)
-bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 shutil.copy2(F, bak)
 print("backup:", bak)
 open(F, "w").write(src.replace(ANCHOR, NEW, 1))

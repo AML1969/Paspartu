@@ -39,7 +39,7 @@ def main() -> int:
     if n != 1:
         print(f"base.py: якорь найден {n} раз (ожидалось 1) — АБОРТ, изменений нет")
         return 1
-    bak = BASE + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+    bak = BASE + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
     shutil.copy2(BASE, bak)
     patched = src.replace(ANCHOR, NEW, 1)
     open(BASE, "w", encoding="utf-8").write(patched)

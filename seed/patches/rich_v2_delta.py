@@ -36,7 +36,7 @@ NEW_PAYLOAD = """            try:
 
 if OLD_GUARD not in src or OLD_PAYLOAD not in src:
     print("anchors not found - aborting"); sys.exit(1)
-bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S")
+bak = F + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + str(time.time_ns() % 10**9)
 shutil.copy2(F, bak)
 print("backup:", bak)
 open(F, "w").write(src.replace(OLD_GUARD, NEW_GUARD, 1).replace(OLD_PAYLOAD, NEW_PAYLOAD, 1))
