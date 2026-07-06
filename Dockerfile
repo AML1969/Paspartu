@@ -21,7 +21,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     HERMES_HOME=/data/hermes \
     HERMES_ENV=/data/hermes/.env \
-    TASKS_DIR=/data/workspace/tasks
+    TASKS_DIR=/data/workspace/tasks \
+    HF_HOME=/data/cache/hf
 
 # Системные зависимости + Node 22 (perplexity-поиск/скиллы) + ripgrep (hmem) + ffmpeg (голос)
 # + офис-стек для документов: pandoc (HTML→DOCX), libreoffice writer/impress/calc
@@ -31,7 +32,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # все python-колёса manylinux готовые (при сборке под arm64 сперва проверить
 # наличие aarch64-колёс у ctranslate2/av, иначе вернуть toolchain).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl ca-certificates git ripgrep ffmpeg openssl tini \
+        curl ca-certificates git ripgrep ffmpeg openssl tini procps \
         pandoc libreoffice-writer libreoffice-impress libreoffice-calc poppler-utils \
         fonts-liberation fonts-dejavu \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
@@ -95,8 +96,14 @@ LABEL org.opencontainers.image.title="bif" \
       org.opencontainers.image.version="1.0" \
       org.opencontainers.image.description="BIF: Hermes Agent 0.16.0 + rich/carousel/localize/sentinel патчи (манифест seed/patches/patches.txt), блочная сборка"
 
-# Все данные копии (память, сессии, конфиг, скиллы, токены) — на томе /data
+# Все данные копии (память, сессии, конфиг, скиллы, токены) — на томе /data.
+# HF_HOME тоже на томе: whisper-модель (~74 МБ) не перекачивается при пересоздании.
 VOLUME ["/data"]
+
+# Живость gateway-процесса: если он умер, а контейнер жив — пометить unhealthy
+# (видно в docker ps; авто-рестарт можно навесить autoheal'ом позже).
+HEALTHCHECK --interval=60s --timeout=10s --start-period=180s --retries=3 \
+  CMD pgrep -f "hermes.*gateway" >/dev/null || exit 1
 
 # Telegram long-poll наружу — входящие порты не нужны.
 ENTRYPOINT ["/usr/bin/tini","--","/usr/local/bin/entrypoint.sh"]
