@@ -164,6 +164,21 @@ resolve_flags(){ # uses PRESET + env WITH_* overrides + OA_KEY/PX_KEY/OR_KEY
   return 0
 }
 
+# ── живая валидация набора ключей (общая для --check и --headless) ─────────
+# validate_keys DS TG OA PX STRICT
+#   Пингует каждый непустой ключ. STRICT=1 → вернёт 1, если DeepSeek/Telegram
+#   (обязательные) не прошли; OpenAI/Perplexity всегда некритичны. STRICT=0 →
+#   только печать, всегда 0 (режим --check).
+validate_keys(){
+  local ds="$1" tg="$2" oa="${3:-}" px="${4:-}" strict="${5:-0}" rc=0
+  [ -n "$ds" ] && { val_deepseek "$ds" || rc=1; }
+  [ -n "$tg" ] && { val_tg "$tg" || rc=1; }
+  [ -n "$oa" ] && { val_openai "$oa" || true; }
+  [ -n "$px" ] && { val_pplx "$px" || true; }
+  [ "$strict" = 1 ] && return "$rc"
+  return 0
+}
+
 # ════════════════════════ MODE: --check ════════════════════════
 if [ "${1:-}" = "--check" ]; then
   NAME="${2:?укажи имя копии: ./install.sh --check имя}"; ENVF="copies/$NAME.env"
@@ -175,10 +190,8 @@ if [ "${1:-}" = "--check" ]; then
     export "$k=$v"
   done < "$ENVF"
   hdr "Проверка ключей копии «$NAME»"
-  val_deepseek "${DEEPSEEK_API_KEY:-}" || true
-  [ -n "${OPENAI_API_KEY:-}" ] && { val_openai "$OPENAI_API_KEY" || true; }
-  [ -n "${PERPLEXITY_API_KEY:-}" ] && { val_pplx "$PERPLEXITY_API_KEY" || true; }
-  val_tg "${TELEGRAM_BOT_TOKEN:-}" || true
+  validate_keys "${DEEPSEEK_API_KEY:-}" "${TELEGRAM_BOT_TOKEN:-}" \
+                "${OPENAI_API_KEY:-}" "${PERPLEXITY_API_KEY:-}" 0
   exit 0
 fi
 
@@ -197,10 +210,7 @@ if [ "${1:-}" = "--headless" ]; then
   if [ "${BIF_VALIDATE:-1}" = 1 ]; then
     hdr "Живая валидация ключей"
     rc=0
-    val_deepseek "$DS_KEY" || rc=1
-    val_tg "$TG_TOKEN" || rc=1
-    [ -n "$OA_KEY" ] && { val_openai "$OA_KEY" || true; }
-    [ -n "$PX_KEY" ] && { val_pplx "$PX_KEY" || true; }
+    validate_keys "$DS_KEY" "$TG_TOKEN" "$OA_KEY" "$PX_KEY" 1 || rc=1
     [ "$rc" = 1 ] && c_warn "обязательный ключ (DeepSeek/Telegram) не прошёл — копия не поднимется корректно"
   fi
   write_env
