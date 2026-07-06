@@ -90,7 +90,7 @@ write_env(){ # uses NAME + DS_KEY TG_TOKEN TG_ID + OA_KEY PX_KEY OR_KEY + W_*
 DEEPSEEK_API_KEY=$DS_KEY
 TELEGRAM_BOT_TOKEN=$TG_TOKEN
 TELEGRAM_ALLOWED_USERS=$TG_ID
-TELEGRAM_HOME_CHANNEL=${TG_HOME:-${TG_ID%%,*}}
+TELEGRAM_HOME_CHANNEL=$TG_HOME
 ${OA_KEY:+OPENAI_API_KEY=$OA_KEY}
 ${PX_KEY:+PERPLEXITY_API_KEY=$PX_KEY}
 ${OR_KEY:+OPENROUTER_API_KEY=$OR_KEY}
@@ -190,7 +190,7 @@ if [ "${1:-}" = "--headless" ]; then
   TG_ID="${TELEGRAM_ALLOWED_USERS:?headless: нужен TELEGRAM_ALLOWED_USERS}"
   val_tgid "$TG_ID" || c_warn "TELEGRAM_ALLOWED_USERS выглядит подозрительно (ожидаю цифры/запятые): '$TG_ID'"
   DS_KEY="${DEEPSEEK_API_KEY:?headless: нужен DEEPSEEK_API_KEY}"
-  TG_HOME="${TELEGRAM_HOME_CHANNEL:-$TG_ID}"
+  TG_HOME="${TELEGRAM_HOME_CHANNEL:-${TG_ID%%,*}}"
   OA_KEY="${OPENAI_API_KEY:-}"; PX_KEY="${PERPLEXITY_API_KEY:-}"; OR_KEY="${OPENROUTER_API_KEY:-}"
   hdr "BIF headless — копия «$NAME» (preset=${PRESET:-standard})"
   resolve_flags
@@ -227,7 +227,9 @@ until val_tgid "$TG_ID"; do
   c_no "ID — это число (несколько ID — через запятую без пробелов), напр. 123456789"
   TG_ID="$(ask 'Твой Telegram ID (whitelist)')"
 done
-TG_HOME="$TG_ID"
+# home-channel = ПЕРВЫЙ id из whitelist (куда бот шлёт карточки/уведомления);
+# whitelist может быть списком «1,2», но канал — один чат.
+TG_HOME="${TG_ID%%,*}"
 
 hdr "Шаг 2. Мозг (обязательно)"
 echo "  Ключ: platform.deepseek.com"
