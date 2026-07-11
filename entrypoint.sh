@@ -51,11 +51,15 @@ if [ "$FIRST_RUN" = 1 ]; then
   mkdir -p "$HERMES_HOME/skills"
   # ГРАБЛИ: make-seed.sh кладёт в тарбол верхний каталог skills/ → без strip
   # получалось $HERMES_HOME/skills/skills/... и Hermes не видел НИ ОДНОГО скилла.
-  if tar tzf "$SEED/skills.tar.gz" | head -1 | grep -q "^skills/"; then
-    tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills" --strip-components=1
-  else
-    tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills"
-  fi
+  # ВНИМАНИЕ: тут НЕЛЬЗЯ писать `tar ... | head -1` — при set -o pipefail tar ловит SIGPIPE
+  # (код 141), условие уходит в else, strip не применяется и снова получается skills/skills.
+  SKILLS_TOP="$(tar tzf "$SEED/skills.tar.gz" 2>/dev/null | sed -n 1p || true)"
+  case "$SKILLS_TOP" in
+    skills/*|skills)
+      tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills" --strip-components=1 ;;
+    *)
+      tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills" ;;
+  esac
 
   # Блочная прополка скиллов: убрать то, что выключено
   on "$WITH_TRACKER"    || rm -rf "$HERMES_HOME/skills/productivity/task-tracker"
@@ -126,6 +130,11 @@ HMEM
         PXPATH="$HERMES_HOME/skills/openclaw-imports/perplexity/scripts/search.mjs"
       else
         PXPATH="(Perplexity отключён — используй встроенный web_search)"
+      fi
+      # Память: правило «только файлы» — иначе модель зовёт отключённый memory-инструмент
+      # и молча теряет «запомни, что…» (ловили у Игоря, у Андрея и у Руслана 2026-07-11).
+      if on "$WITH_HMEM"; then
+        cat "$SEED/MEMORY_BLOCK.md" >> "$HERMES_HOME/SOUL.md"
       fi
       if on "$WITH_CODEX"; then
         sed -e "s#{CODEX_TASK_SH}#/data/codex-jobs/codex_task.sh#g" \
