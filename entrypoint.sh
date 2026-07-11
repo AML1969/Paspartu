@@ -96,6 +96,14 @@ PY
   if on "$WITH_HMEM"; then
     mkdir -p "$HERMES_HOME/bin"
     tar xzf "$SEED/hmem-bin.tar.gz" -C "$HERMES_HOME/bin"
+    # ГРАБЛИ: обёртка hmem в сиде снята verbatim с pipx-сервера и хардкодит
+    # /root/.hermes/bin/hmem.py + /root/hermes-workspace → в контейнере это НЕ существует,
+    # банк памяти молча не работал. Перегенерируем обёртку под docker-раскладку.
+    cat > "$HERMES_HOME/bin/hmem" <<HMEM
+#!/bin/sh
+# Ядро: $HERMES_HOME/bin/hmem.py (форк GitMark, MIT).
+exec python3 "$HERMES_HOME/bin/hmem.py" --root "$WORKSPACE" "\$@"
+HMEM
     chmod +x "$HERMES_HOME/bin/hmem" 2>/dev/null || true
     ( cd "$WORKSPACE" && "$HERMES_HOME/bin/hmem" index >/dev/null 2>&1 || echo "[entrypoint] hmem index отложен (ничего индексировать)" )
   fi
@@ -159,4 +167,7 @@ fi
 
 echo "[entrypoint] блоки: openai=$WITH_OPENAI openrouter=$WITH_OPENROUTER perplexity=$WITH_PERPLEXITY hmem=$WITH_HMEM voice=$WITH_VOICE tracker=$WITH_TRACKER google=$WITH_GOOGLE codex=$WITH_CODEX site=$WITH_SITE rich=$HERMES_RICH_MESSAGES"
 echo "[entrypoint] старт gateway (HERMES_HOME=$HERMES_HOME)"
+# hmem должен быть в PATH при КАЖДОМ старте (/usr/local/bin — слой образа, не том)
+if [ -x "$HERMES_HOME/bin/hmem" ]; then ln -sf "$HERMES_HOME/bin/hmem" /usr/local/bin/hmem; fi
+
 exec hermes gateway run
