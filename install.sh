@@ -61,7 +61,7 @@ val_tgid(){ case "${1:-}" in ''|*[!0-9,]*|,*|*,|*,,*) return 1;; *) return 0;; e
 # ── живая валидация ключей ────────────────────────────────────────────────
 val_deepseek(){ curl -fsS -m 12 https://api.deepseek.com/v1/models -H "Authorization: Bearer $1" -o /dev/null && c_ok "DeepSeek" || { c_no "DeepSeek — ключ отклонён"; return 1; }; }
 val_openai(){   curl -fsS -m 12 https://api.openai.com/v1/models   -H "Authorization: Bearer $1" -o /dev/null && { c_ok "OpenAI"; return 0; } || { c_no "OpenAI — ключ отклонён"; return 1; }; }
-val_pplx(){     curl -fsS -m 12 https://api.perplexity.ai/chat/completions -H "Authorization: Bearer $1" -H 'Content-Type: application/json' -d '{"model":"sonar","messages":[{"role":"user","content":"ping"}],"max_tokens":1}' -o /dev/null && { c_ok "Perplexity"; return 0; } || { c_no "Perplexity — ключ отклонён (проверь баланс)"; return 1; }; }
+val_pplx(){ local c; c=$(curl -s -m 12 -o /dev/null -w '%{http_code}' https://api.perplexity.ai/chat/completions -H "Authorization: Bearer $1" -H 'Content-Type: application/json' -d '{"model":"sonar","messages":[{"role":"user","content":"ping"}],"max_tokens":16}'); case "$c" in 401|403) c_no "Perplexity — ключ отклонён (401/403)"; return 1;; 000) c_no "Perplexity — сеть недоступна, ключ не проверен"; return 0;; *) c_ok "Perplexity (HTTP $c)"; return 0;; esac; }
 val_tg(){ local r; r=$(curl -fsS -m 12 "https://api.telegram.org/bot$1/getMe" 2>/dev/null||true); case "$r" in *'"ok":true'*) c_ok "Telegram $(echo "$r"|grep -o '"username":"[^"]*"'|cut -d'"' -f4|sed 's/^/@/')"; return 0;; *) c_no "Telegram getMe — токен отклонён"; return 1;; esac; }
 
 # ── пресет → тумблеры (явные WITH_* потом перекрывают) ────────────────────

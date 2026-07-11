@@ -32,7 +32,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # все python-колёса manylinux готовые (при сборке под arm64 сперва проверить
 # наличие aarch64-колёс у ctranslate2/av, иначе вернуть toolchain).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl ca-certificates git ripgrep ffmpeg openssl tini procps \
+        curl ca-certificates git ripgrep ffmpeg openssl tini procps rsync openssh-client \
         pandoc libreoffice-writer libreoffice-impress libreoffice-calc poppler-utils \
         fonts-liberation fonts-dejavu \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
@@ -50,7 +50,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # markitdown[pptx] — чтение/извлечение текста из .pptx/.docx для скиллов документов.
 # (edge-tts намеренно не ставим — голосовые ОТВЕТЫ/TTS клиентским копиям не нужны;
 #  голосовой ВВОД/STT работает локально через faster-whisper без доп. пакетов.)
-RUN pip install "hermes-agent[messaging,voice,vision,google]==${HERMES_VERSION}" \
+RUN pip install "hermes-agent[messaging,voice,vision,google,mcp]==${HERMES_VERSION}" \
         "ddgs==9.14.4" "markitdown[pptx]==0.1.6"
 
 # --- Запекание патчей (отдельный слой для кэша) ---------------------------

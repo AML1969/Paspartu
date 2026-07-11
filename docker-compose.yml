@@ -18,6 +18,8 @@ services:
         HERMES_VERSION: "0.16.0"
     image: bif:1.0
     restart: unless-stopped
+    labels:
+      - "autoheal=true"   # сторож перезапускает контейнер при unhealthy
     env_file:
       - copies/${COPY:?нужно COPY=имя_копии}.env
     volumes:

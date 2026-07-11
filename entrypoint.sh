@@ -49,7 +49,13 @@ if [ "$FIRST_RUN" = 1 ]; then
   sed -i "s#^  cwd: .*#  cwd: ${WORKSPACE}#" "$HERMES_HOME/config.yaml"
 
   mkdir -p "$HERMES_HOME/skills"
-  tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills"
+  # ГРАБЛИ: make-seed.sh кладёт в тарбол верхний каталог skills/ → без strip
+  # получалось $HERMES_HOME/skills/skills/... и Hermes не видел НИ ОДНОГО скилла.
+  if tar tzf "$SEED/skills.tar.gz" | head -1 | grep -q "^skills/"; then
+    tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills" --strip-components=1
+  else
+    tar xzf "$SEED/skills.tar.gz" -C "$HERMES_HOME/skills"
+  fi
 
   # Блочная прополка скиллов: убрать то, что выключено
   on "$WITH_TRACKER"    || rm -rf "$HERMES_HOME/skills/productivity/task-tracker"
