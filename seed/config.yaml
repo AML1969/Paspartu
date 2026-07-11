@@ -489,3 +489,9 @@ known_plugin_toolsets:
 image_gen:
   provider: openai
   model: gpt-image-2-medium
+
+mcp_servers:
+  kiwi:
+    url: https://mcp.kiwi.com
+    timeout: 180
+    connect_timeout: 60
