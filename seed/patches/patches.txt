@@ -19,3 +19,5 @@ rich_v6.py
 rich_v6b_draft_strip.py
 rich_v7_carousel.py
 rich_v8_carousel_rich.py
+rich_v9_send_cli.py
+rich_v10_divider.py
