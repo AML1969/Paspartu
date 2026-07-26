@@ -1,5 +1,5 @@
-name: web-direct
-version: 1.0.0
+name: web_direct
+version: 1.0.1
 description: "Keyless direct-fetch web extraction. Fetches a URL over plain HTTP and converts HTML to text -- no API key, no third-party service. Guarantees web_extract is never dead."
 author: Paspartu
 kind: backend
