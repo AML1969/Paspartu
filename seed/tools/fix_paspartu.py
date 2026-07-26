@@ -38,7 +38,7 @@ PLUGIN = "web_direct"
 BACKEND = "direct"
 
 DEFAULT_ROOTS = ["/root", "/data", "/home", "/var/lib/docker/volumes"]
-SKIP_SUBSTR = ("kompromat",)
+SKIP_SUBSTR = ("kompromat", "/migration/", "/backups/")
 SKIP_DIRS = {".git", "node_modules", "__pycache__", "site-packages",
              ".venv", "venv", ".cache", "dist-packages"}
 
