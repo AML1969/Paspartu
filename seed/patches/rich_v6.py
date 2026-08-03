@@ -3,7 +3,7 @@
 
 The edit-based streaming transport finalizes by editing the partial message
 with format_message (MarkdownV2 + table->bullets) — the last path that
-degraded rich content (Andrew's quarterly-report test: model wrote a perfect
+degraded rich content (quarterly-report test: model wrote a perfect
 table, user got bullets). Bot API 10.1 editMessageText accepts rich_message:
 try a rich edit first (normalized markdown, handles up to 32k without
 splitting), fall back to the stock path on any error.
