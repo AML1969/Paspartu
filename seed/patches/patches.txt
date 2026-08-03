@@ -22,3 +22,4 @@ rich_v8_carousel_rich.py
 rich_v9_send_cli.py
 rich_v10_divider.py
 mcp_kiwi_resilience.py
+web_extract_direct.py
