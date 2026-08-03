@@ -96,7 +96,7 @@ echo "=== 8. Чистка старых .bak (>30 дней) ==="
 find "$SP/gateway" -name '*.bak-*' -mtime +30 -delete 2>/dev/null || true
 echo "OK"
 # Памятка:
-# - .env Андрея под chattr +i: для правок сначала chattr -i, потом вернуть +i.
+# - .env пользователя под chattr +i: для правок сначала chattr -i, потом вернуть +i.
 # - Флаги per-profile НЕ трогает апдейт: HERMES_RICH_MESSAGES в .env,
 #   gateway.streaming.enabled в config.yaml — проверять не надо.
 # - cancel_words_ru/cancel_barge_in/tracker_rich — в archive/, НЕ в цепочке
