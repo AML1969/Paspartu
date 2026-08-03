@@ -46,7 +46,7 @@ terminal:
 web:
   backend: ''
   search_backend: ''
-  extract_backend: ''
+  extract_backend: direct
 browser:
   inactivity_timeout: 120
   command_timeout: 30
@@ -462,7 +462,8 @@ paste_collapse_char_threshold: 2000
 _config_version: 24
 plugins:
   enabled:
-  - image_gen/openai
+  - image_gen/fal
+  - web_direct
   disabled: []
 platform_toolsets:
   cli:
@@ -486,9 +487,11 @@ platform_toolsets:
 known_plugin_toolsets:
   cli:
   - spotify
+# Дефолт = QWEN (fal). Entrypoint на каждом старте приводит этот блок (и
+# plugins.enabled, и тулсет image_gen) в соответствие IMAGE_PROVIDER копии.
 image_gen:
-  provider: openai
-  model: gpt-image-2-medium
+  provider: fal
+  model: fal-ai/qwen-image-2/text-to-image
 
 mcp_servers:
   kiwi:
