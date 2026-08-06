@@ -22,6 +22,8 @@ rich_v8_carousel_rich.py
 rich_v9_send_cli.py
 rich_v10_divider.py
 mcp_kiwi_resilience.py
+doc_limit_ru.py
+fal_qwen2_models.py
 web_extract_direct.py
 doc_html_type.py
 photo_paths_hint.py

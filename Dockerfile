@@ -4,7 +4,8 @@
 # Источник правды: живой сервер 188.166.122.243 (Hermes Agent v0.16.0).
 # Отличие от прошлого образа (0.15.2, без патчей):
 #   • та же версия, что на сервере — 0.16.0;
-#   • 11 рабочих патчей (rich-формат + карусели + локализация кнопок + sentinel)
+#   • 15 рабочих патчей (rich-формат + карусели + локализация кнопок + sentinel +
+#     MCP-реконнект + русское сообщение про лимит 20 МБ)
 #     ЗАПЕКАЮТСЯ в образ на build-time, ретаргет pipx-пути на site-packages
 #     контейнера; порядок — из манифеста seed/patches/patches.txt (его же читает
 #     update_hermes.sh на хосте — единый источник порядка);
@@ -25,6 +26,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HF_HOME=/data/cache/hf
 
 # Системные зависимости + Node 22 (perplexity-поиск/скиллы) + ripgrep (hmem) + ffmpeg (голос)
+# + imagemagick (`convert` — ресайз фото перед qwen-image-edit: у fal лимит 15 МБ на вход;
+#   без него скилл падал с `convert: command not found`, ловили 14.07 на живом боте).
 # + офис-стек для документов: pandoc (HTML→DOCX), libreoffice writer/impress/calc
 #   (DOCX/PPTX→PDF, headless), poppler-utils (рендер слайдов), шрифты с кириллицей.
 #   pptxgenjs (создание .pptx с нуля) ставится глобально через npm.
@@ -34,7 +37,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates git ripgrep ffmpeg openssl tini procps rsync openssh-client \
         pandoc libreoffice-writer libreoffice-impress libreoffice-calc poppler-utils \
-        fonts-liberation fonts-dejavu \
+        fonts-liberation fonts-dejavu imagemagick \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g pptxgenjs@4.0.1 && npm cache clean --force \
