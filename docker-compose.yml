@@ -16,7 +16,7 @@ services:
       context: .
       args:
         HERMES_VERSION: "0.16.0"
-    image: bif:1.0
+    image: bif:1.1
     restart: unless-stopped
     labels:
       - "autoheal=true"   # сторож перезапускает контейнер при unhealthy
@@ -41,7 +41,7 @@ services:
       context: .
       args:
         HERMES_VERSION: "0.16.0"
-    image: bif:1.0
+    image: bif:1.1
     restart: unless-stopped
     env_file:
       - copies/${COPY}.env
