@@ -1,8 +1,8 @@
 # Паспарту 🗝️ — личный AI-ассистент в Telegram
 
-> 🪟 **Эта ветка `main` — установка на Windows 11 через WSL2** (версия для Тимура).
-> Для установки на **чистый Ubuntu / Linux-сервер** — ветка **`linux`**:
-> <https://github.com/AML1969/Paspartu/tree/linux>
+> 🐧 **Эта ветка `linux` — установка на чистый Ubuntu / Linux-сервер.**
+> Ставишь на Windows 11 (через WSL2)? — ветка **`main`**:
+> <https://github.com/AML1969/Paspartu/tree/main>
 
 Паспарту — твой персональный ассистент на базе Hermes Agent, который живёт **на твоём компьютере**
 в Docker, а общаешься ты с ним перепиской в **Telegram**. Никаких чужих серверов: ключи и данные
@@ -24,7 +24,7 @@
 На Linux (или Ubuntu в WSL2 на Windows) с установленным Docker:
 
 ```bash
-git clone https://github.com/AML1969/Paspartu.git && cd Paspartu
+git clone -b linux https://github.com/AML1969/Paspartu.git && cd Paspartu
 ./install.sh
 ```
 
@@ -37,7 +37,7 @@ git clone https://github.com/AML1969/Paspartu.git && cd Paspartu
 
 ## Что нужно (требования)
 
-- **Linux** (Ubuntu/Debian; на Windows — через WSL2, см. [INSTALL.md](INSTALL.md)).
+- **Ubuntu/Debian** — сервер/VPS или машина с Linux. Пошагово — [INSTALL.md](INSTALL.md).
 - **Docker** + плагин `docker compose` v2. Проверка: `docker compose version`.
 - **~4 ГБ RAM и ~15 ГБ свободного диска** (образ ~3 ГБ + том с данными).
 - **Интернет** (исходящий HTTPS). Telegram работает «наружу» — **пробрасывать порты не нужно.**
