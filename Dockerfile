@@ -56,6 +56,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install "hermes-agent[messaging,voice,vision,google,mcp]==${HERMES_VERSION}" \
         "ddgs==9.14.4" "markitdown[pptx]==0.1.6"
 
+# --- Codex CLI (bif:1.2): эскалация DeepSeek основной + OpenAI sol запасной ---
+# Слой ДО патчей: при будущих изменениях патчей кэшируется.
+RUN pip install "openai-codex-cli-bin==0.144.4" "openai-codex" \
+    && ln -sf /usr/local/lib/python3.12/site-packages/codex_cli_bin/bin/codex /usr/local/bin/codex \
+    && codex --version
+
 # --- Запекание патчей (отдельный слой для кэша) ---------------------------
 # Патчи verbatim с сервера хардкодят pipx-путь; ретаргетим на реальный
 # site-packages контейнера. Порядок — ТОЛЬКО из seed/patches/patches.txt
@@ -96,8 +102,8 @@ ENV NODE_PATH=/usr/lib/node_modules
 
 # LABEL в конце: смена версии не инвалидирует дорогие apt/pip-слои выше.
 LABEL org.opencontainers.image.title="bif" \
-      org.opencontainers.image.version="1.0" \
-      org.opencontainers.image.description="BIF: Hermes Agent 0.16.0 + rich/carousel/localize/sentinel патчи (манифест seed/patches/patches.txt), блочная сборка"
+      org.opencontainers.image.version="1.2" \
+      org.opencontainers.image.description="BIF: Hermes Agent 0.16.0 + rich/carousel/localize/sentinel/spill-guard патчи (манифест seed/patches/patches.txt) + codex-раннер, блочная сборка"
 
 # Все данные копии (память, сессии, конфиг, скиллы, токены) — на томе /data.
 # HF_HOME тоже на томе: whisper-модель (~74 МБ) не перекачивается при пересоздании.
