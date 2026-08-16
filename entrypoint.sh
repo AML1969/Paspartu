@@ -179,6 +179,7 @@ HMEM
         sed -e "s#{CODEX_TASK_SH}#/data/codex-jobs/codex_task.sh#g" \
             -e "s#{CODEX_ENABLED_FILE}#/data/codex/enabled#g" \
             "$SEED/CODEX_BLOCK.md" >> "$HERMES_HOME/SOUL.md"
+        cat "$SEED/codex/CODEX_PROVIDER_BLOCK.md" >> "$HERMES_HOME/SOUL.md" 2>/dev/null || true
       fi
       if on "$WITH_PERPLEXITY" || on "$WITH_CODEX"; then
         sed -e "s#{ПУТЬ_PERPLEXITY}#${PXPATH}#g" \
@@ -307,6 +308,17 @@ chmod 600 "$HERMES_HOME/.env"
 if on "$WITH_GOOGLE" && [ ! -f "$HERMES_HOME/google_token.json" ]; then
   echo "[entrypoint] ℹ️ Google включён, но не авторизован. ОБЯЗАТЕЛЬНО Publish app → In production"
   echo "[entrypoint]    (иначе refresh-токен умрёт через 7 дней). Шаги: README.md → Google."
+fi
+
+# ── Codex-эскалация (bif:1.2): раннер внутри контейнера ────────────────────
+if on "$WITH_CODEX"; then
+  mkdir -p /data/hermes/logs
+  if bash /opt/hermes-seed/codex/codex_setup.sh; then
+    ( while :; do bash /data/codex-jobs/codex_watch_tick.sh >> /data/hermes/logs/codex_watch.log 2>&1 || true; sleep 180; done ) &
+    echo "[entrypoint] codex: раннер готов, watch-цикл запущен (180s)"
+  else
+    echo "[entrypoint] ⚠️ codex_setup не прошёл — Codex-блок пропущен"
+  fi
 fi
 
 echo "[entrypoint] блоки: openai(vision)=$WITH_OPENAI image=$IMAGE_PROVIDER openrouter=$WITH_OPENROUTER perplexity=$WITH_PERPLEXITY hmem=$WITH_HMEM voice=$WITH_VOICE tracker=$WITH_TRACKER google=$WITH_GOOGLE codex=$WITH_CODEX site=$WITH_SITE rich=$HERMES_RICH_MESSAGES"
