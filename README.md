@@ -1,6 +1,6 @@
 # Паспарту 🗝️ — личный AI-ассистент в Telegram
 
-> 🪟 **Эта ветка `main` — установка на Windows 11 через WSL2** (версия для Тимура).
+> 🪟 **Эта ветка `main` — установка на Windows 11 через WSL2** .
 > Для установки на **чистый Ubuntu / Linux-сервер** — ветка **`linux`**:
 > <https://github.com/AML1969/Paspartu/tree/linux>
 
