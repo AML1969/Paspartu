@@ -31,11 +31,19 @@ trust_level = "trusted"
 [projects."/tmp"]
 trust_level = "trusted"
 
+# codex-trust-workspace: агент правит файлы в своей рабочей папке —
+# без этого workspace-write туда не пускает
+[projects."/data/workspace"]
+trust_level = "trusted"
+
+
 [model_providers.deepseek]
 name = "deepseek"
 base_url = "https://api.deepseek.com/"
 wire_api = "responses"
-experimental_bearer_token = "$DEEPSEEK_API_KEY"
+# codex-key-env-fix: секрет НЕ пишем в конфиг — Codex берёт его из окружения.
+# Раньше здесь лежал ключ открытым текстом, и он возвращался при каждом старте.
+env_key = "DEEPSEEK_API_KEY"
 EOF
 chmod 600 /root/.codex/config.toml
 if [ -n "${OPENAI_API_KEY:-}" ]; then
