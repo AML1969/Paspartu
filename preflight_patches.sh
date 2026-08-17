@@ -54,7 +54,7 @@ run_chain(){ # $1 = метка прогона; глобальные счётчи
   N_OK=0; N_SKIP=0; N_FAIL=0; FAILED=""
   for p in "${PATCHES[@]}"; do
     sed "s#${PIPX}#${WORK}/pkg#g" "$PATCH_DIR/$p" > "$WORK/run_$p"
-    set +e; out="$("$PYBIN" "$WORK/run_$p" 2>&1)"; rc=$?; set -e
+    set +e; out="$(HERMES_SITE_PACKAGES="$WORK/pkg" "$PYBIN" "$WORK/run_$p" 2>&1)"; rc=$?; set -e
     if [ $rc -eq 0 ]; then
       case "$out" in *SKIP*|*skip*|*уже*|*already*) N_SKIP=$((N_SKIP+1)); echo "  [$label] SKIP $p";;
                      *) N_OK=$((N_OK+1)); echo "  [$label] OK   $p";; esac

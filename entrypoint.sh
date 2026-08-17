@@ -299,7 +299,9 @@ GW_TOKEN="${HERMES_GATEWAY_TOKEN:-$(openssl rand -hex 24)}"
   echo "TELEGRAM_HOME_CHANNEL=${TELEGRAM_HOME_CHANNEL:-${TELEGRAM_ALLOWED_USERS%%,*}}"
   echo "HERMES_GATEWAY_TOKEN=${GW_TOKEN}"
   echo "HERMES_RICH_MESSAGES=${HERMES_RICH_MESSAGES}"
-  echo "MESSAGING_CWD=${WORKSPACE}"
+  # MESSAGING_CWD deprecated: cwd уже проставляется в config.yaml
+  # (terminal.cwd, sed выше по скрипту). Дубль в .env давал
+  # предупреждение "Deprecated .env settings detected" на каждом старте.
   echo "HERMES_MEDIA_ALLOW_DIRS=${HERMES_HOME}/cache/images:${WORKSPACE}"
 } > "$HERMES_HOME/.env"
 chmod 600 "$HERMES_HOME/.env"

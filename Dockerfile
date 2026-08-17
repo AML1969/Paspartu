@@ -37,7 +37,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates git ripgrep ffmpeg openssl tini procps rsync openssh-client \
         pandoc libreoffice-writer libreoffice-impress libreoffice-calc poppler-utils \
-        fonts-liberation fonts-dejavu imagemagick \
+        fonts-liberation fonts-dejavu imagemagick file \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g pptxgenjs@4.0.1 && npm cache clean --force \
@@ -54,7 +54,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (edge-tts намеренно не ставим — голосовые ОТВЕТЫ/TTS клиентским копиям не нужны;
 #  голосовой ВВОД/STT работает локально через faster-whisper без доп. пакетов.)
 RUN pip install "hermes-agent[messaging,voice,vision,google,mcp]==${HERMES_VERSION}" \
-        "ddgs==9.14.4" "markitdown[pptx]==0.1.6"
+        "ddgs==9.14.4" "markitdown[pptx]==0.1.6" \
+        "scipy==1.18.0" "pdf2image==1.17.0"
 
 # --- Codex CLI (bif:1.2): эскалация DeepSeek основной + OpenAI sol запасной ---
 # Слой ДО патчей: при будущих изменениях патчей кэшируется.
@@ -70,6 +71,7 @@ COPY seed/patches/ /opt/hermes-seed/patches/
 RUN set -eu; \
     SP="$(python -c 'import gateway,os;print(os.path.dirname(os.path.dirname(os.path.abspath(gateway.__file__))))')"; \
     echo "[build] site-packages = $SP"; \
+    export HERMES_SITE_PACKAGES="$SP"; \
     PIPX='/root/.local/share/pipx/venvs/hermes-agent/lib/python3.12/site-packages'; \
     MANIFEST=/opt/hermes-seed/patches/patches.txt; \
     [ -s "$MANIFEST" ] || { echo "[build] FATAL: нет $MANIFEST"; exit 1; }; \

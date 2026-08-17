@@ -151,11 +151,30 @@ class DirectWebExtractProvider(WebSearchProvider):
                 )
 
         except httpx.HTTPStatusError as exc:
-            return self._failure(
-                url, f"HTTP {exc.response.status_code} fetching the page."
-            )
+            # web-direct-actionable-403: отказ должен быть инструкцией, а не тупиком.
+            code = exc.response.status_code
+            if code in (401, 403, 429):
+                return self._failure(
+                    url,
+                    f"HTTP {code}: сайт блокирует автоматический доступ "
+                    f"(Cloudflare/WAF). Смена User-Agent НЕ помогает — не повторяй "
+                    f"этот URL и не пробуй другие страницы того же домена. "
+                    f"Возьми эти данные через Perplexity или другой источник.",
+                )
+            if code == 404:
+                return self._failure(
+                    url,
+                    f"HTTP 404: такой страницы нет. Скорее всего URL собран по "
+                    f"догадке — не подставляй адрес сам, найди рабочую ссылку "
+                    f"поиском и только потом извлекай.",
+                )
+            return self._failure(url, f"HTTP {code} fetching the page.")
         except httpx.TimeoutException:
-            return self._failure(url, f"Timed out after {timeout}s.")
+            return self._failure(
+                url,
+                f"Timed out after {timeout}s. Не повторяй этот URL — возьми "
+                f"данные через Perplexity или другой источник.",
+            )
         except Exception as exc:  # noqa: BLE001 - never sink the batch
             logger.info("direct extract failed for %s: %s", url, exc)
             return self._failure(url, f"{type(exc).__name__}: {exc}")
