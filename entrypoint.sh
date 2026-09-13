@@ -254,6 +254,28 @@ else
   rm -rf "$HERMES_HOME/skills/media/qwen-image-edit"
 fi
 
+# ── Запрет доустановок/браузера — на КАЖДОМ старте ──
+# Повод (13.09.2026): у копии агент сам поставил agent-browser + Chrome 153 + ~50 apt-пакетов,
+# пытаясь прочитать расшаренную ссылку Google AI Mode (она за капчей) — 1.3 ГБ из 3 ГБ лимита
+# висело на идле. Блок обёрнут маркерами noheavy:begin/end и заменяется целиком,
+# чтобы исправленная редакция доезжала до живых копий (грабля IMAGE_BLOCK 14.07).
+if [ -f "$SEED/NO_HEAVY_INSTALL_BLOCK.md" ] && [ -f "$HERMES_HOME/SOUL.md" ]; then
+  if ! cmp -s <(sed -n '/<!-- noheavy:begin -->/,/<!-- noheavy:end -->/p' "$HERMES_HOME/SOUL.md") "$SEED/NO_HEAVY_INSTALL_BLOCK.md"; then
+    python - "$HERMES_HOME/SOUL.md" "$SEED/NO_HEAVY_INSTALL_BLOCK.md" <<'PY'
+import io,re,sys
+soul_p,blk_p=sys.argv[1],sys.argv[2]
+blk=io.open(blk_p,encoding='utf-8').read().strip('\n')
+s=io.open(soul_p,encoding='utf-8').read()
+pat=re.compile(r'<!-- noheavy:begin -->.*?<!-- noheavy:end -->',re.S)
+new=pat.sub(lambda m: blk, s) if pat.search(s) else s.rstrip('\n')+'\n\n'+blk+'\n'
+if new!=s:
+    io.open(soul_p,'w',encoding='utf-8').write(new)
+    print('[entrypoint] SOUL.md: блок NO_HEAVY_INSTALL развёрнут/обновлён')
+PY
+  fi
+fi
+
+
 if [ -n "${FAL_KEY:-}" ] && [ -f "$SEED/IMAGE_BLOCK.md" ]; then
   # SOUL и AGENTS: блок правил про картинки ОБНОВЛЯЕТСЯ (а не дописывается один раз).
   # ГРАБЛЯ 14.07: первая версия просто делала append под guard «блок уже есть» — и
