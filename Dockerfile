@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl ca-certificates git ripgrep ffmpeg openssl tini procps rsync openssh-client \
         pandoc libreoffice-writer libreoffice-impress libreoffice-calc poppler-utils \
         fonts-liberation fonts-dejavu imagemagick file \
+        tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng tesseract-ocr-osd \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g pptxgenjs@4.0.1 && npm cache clean --force \
@@ -55,8 +56,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #  голосовой ВВОД/STT работает локально через faster-whisper без доп. пакетов.)
 RUN pip install "hermes-agent[messaging,voice,vision,google,mcp]==${HERMES_VERSION}" \
         "ddgs==9.14.4" "markitdown[pptx]==0.1.6" \
-        "scipy==1.18.0" "pdf2image==1.17.0"
+        "scipy==1.18.0" "pdf2image==1.17.0" "pymupdf==1.28.2"
 
+# OCR/PDF (bif:1.4, 13.09.2026): tesseract + pymupdf. Агент доустанавливал их сам
+# в слой контейнера (разбор аудита в PDF) — пересоздание копии их сносило.
+# pymupdf читает текстовый слой, tesseract+rus/eng — сканы без текстового слоя.
 # --- Codex CLI (bif:1.2): эскалация DeepSeek основной + OpenAI sol запасной ---
 # Слой ДО патчей: при будущих изменениях патчей кэшируется.
 RUN pip install "openai-codex-cli-bin==0.144.4" "openai-codex" \
