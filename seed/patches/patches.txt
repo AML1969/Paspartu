@@ -28,3 +28,5 @@ web_extract_direct.py
 doc_html_type.py
 photo_paths_hint.py
 spill_guard_v1.py
+skill_desc_autoquote_v2.py
+toolcall_loss_visible_v2.py

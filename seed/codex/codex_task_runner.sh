@@ -6,6 +6,10 @@ WORKDIR="$(cat "$JD/workdir.txt" 2>/dev/null || echo /data/codex-work)"
 LLM="$(cat "$JD/llm.txt" 2>/dev/null || echo deepseek)"
 PARGS=""
 [ "$LLM" = "sol" ] && PARGS="--profile sol"
-codex exec $PARGS --skip-git-repo-check -s workspace-write -C "$WORKDIR" \
+# codex-container-sandbox-fix: в контейнере bwrap не может создать user
+# namespace (Docker seccomp) → падают ВСЕ файловые операции Codex.
+# Изоляцией служит сам контейнер, поэтому внутреннюю песочницу отключаем.
+if [ -f /.dockerenv ]; then SBX="danger-full-access"; else SBX="workspace-write"; fi
+codex exec $PARGS --skip-git-repo-check -s "$SBX" -C "$WORKDIR" \
   --output-last-message "$JD/answer.txt" "$TASK" > "$JD/run.log" 2>&1
 echo $? > "$JD/exit_code"
