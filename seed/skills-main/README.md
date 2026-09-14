@@ -10,6 +10,8 @@ main-бота `paspartu-andrew`, пока копии (Руслан, Игорь) 
 | Скилл | Версия здесь | Версия в `seed/skills.tar.gz` (копии) |
 |---|---|---|
 | `qwen-image-edit` | 14.09.2026 — автопромптинг по гайду GPT-Image-2.5 (секции Task/Subject/Composition/Style/Text/Preserve/Avoid для Sunburst, спеллинг кириллицы, авто quality/background/size, lean-повтор при 422) | 11.09.2026 — маршрут Sunburst/Qwen без автопромптинга |
+| `parcel-tracking` | 14.09.2026 — Nova Global переведён на прямой API (`personal.novaposhtaglobal.ua/tracking.php`), Playwright и команда его установки убраны | в сидах копий этого скилла нет |
+| `mcp-first-check` | 14.09.2026 — верное имя `mcp__kiwi__search_flight`, инструкция Kiwi переписана под Docker (mcp 1.26.0 запечён в образ) | у копий имя тоже исправлено, но текст инструкции — сидовый, под образ bif |
 
 **Если решите раскатать копиям:** скопировать отсюда в рабочее дерево копии,
 перепаковать `seed/skills.tar.gz`, пересобрать образ — и удалить строку из таблицы выше.
